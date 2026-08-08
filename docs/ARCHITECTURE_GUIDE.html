@@ -97,6 +97,7 @@
   <a href="#s9">9. basedpyright 红线</a>
   <a href="#s10">10. 环境与调试</a>
   <a href="#s11">11. FAQ</a>
+  <a href="#s12">12. 参考：qfluentwidget 侧边栏</a>
 </nav>
 
 <main>
@@ -436,6 +437,72 @@ w.interface_btns[<span class="n">1</span>].click()
     <summary>Q：跨页面通信除了 signalBus 还有别的吗？</summary>
     <p>小型项目用 signalBus 足够（发布-订阅解耦）。页面需要主动拉数据时，可让组装层持有页面引用做中介（组装层是唯一允许认识所有页面的地方），但不要页面间直接引用。</p>
   </details>
+</section>
+
+<section id="s12">
+  <h2>12. 参考：qfluentwidget 侧边栏机制（NavigationInterface）</h2>
+  <p>gallery 的侧边栏是 qfluentwidget 核心组件 <code>NavigationInterface</code>（内置于 <code>FluentWindow</code>）。它不是一个按钮列表，而是一整套「三层委托 + 注册表 + 显示模式状态机」。理解它 = 理解我们 <code>addInterface</code> 的"原型"。</p>
+
+  <h3>12.1 三层委托链</h3>
+  <pre><code><span class="c"># FluentWindow 布局：hBoxLayout = [侧边栏 | 内容区]（无 QSplitter）</span>
+self.navigationInterface = NavigationInterface(self, showReturnButton=<span class="n">True</span>)
+self.hBoxLayout.addWidget(self.navigationInterface)
+self.widgetLayout.addWidget(self.stackedWidget)   <span class="c"># 右侧页面堆栈</span>
+
+<span class="c"># 用户一行调用，内部走三层委托：</span>
+<span class="k">def</span> addSubInterface(self, interface, icon, text, position=..., parent=None):
+    self.stackedWidget.addWidget(interface)              <span class="c"># ① 页面入堆栈</span>
+    item = self.navigationInterface.addItem(             <span class="c"># ② 侧边栏生成导航项</span>
+        routeKey=interface.objectName(),
+        icon=icon, text=text,
+        onClick=<span class="k">lambda</span>: self.switchTo(interface),   <span class="c"># ③ 点击 -> 切堆栈页面</span>
+        position=position, tooltip=text, parentRouteKey=parentRouteKey)
+    <span class="k">return</span> item
+<span class="c"># NavigationInterface.addItem 又把活儿交给 self.panel.insertItem(...)</span>
+<span class="c"># 反向同步：stackedWidget.currentChanged -> navigationInterface.setCurrentItem(routeKey)</span></code></pre>
+
+  <h3>12.2 面板三段布局（NavigationPanel = QFrame）</h3>
+  <pre><code><span class="c"># vBoxLayout 三段式：</span>
+self.vBoxLayout.addLayout(self.topLayout, <span class="n">0</span>)     <span class="c"># 顶部：返回按钮 + 折叠按钮 + 分隔线/分组标题/用户卡片</span>
+self.vBoxLayout.addWidget(self.scrollArea, <span class="n">1</span>)   <span class="c"># 中部：可滚动导航区（SCROLL 位置项）</span>
+self.vBoxLayout.addLayout(self.bottomLayout, <span class="n">0</span>) <span class="c"># 底部：BOTTOM 位置项（如"设置"）贴底</span>
+
+<span class="c"># 组件：NavigationTreeWidget（导航项，支持子导航树）/ NavigationIndicator（选中条动画）</span>
+<span class="c">#      NavigationSeparator（分隔线）/ NavigationItemHeader（分组标题）/ NavigationUserCard（用户卡片）</span>
+<span class="c"># 注册表：self.items: Dict[str, NavigationItem]（routeKey 全局唯一）</span></code></pre>
+
+  <h3>12.3 折叠状态机</h3>
+  <pre><code><span class="c"># 显示模式四态：MINIMAL / COMPACT / EXPAND / MENU</span>
+<span class="c"># COMPACT = 48px（只显图标）  ↔  EXPAND = 322px（完整文本）</span>
+self.expandAni = QPropertyAnimation(self, b<span class="s">'geometry'</span>, self)   <span class="c"># 折叠动画</span>
+self.expandAni.setStartValue(QRect(pos, QSize(<span class="n">48</span>, h)))
+self.expandAni.setEndValue(QRect(pos, QSize(<span class="n">322</span>, h)))
+<span class="c"># MENU：折叠态点击父级导航 -> 右侧弹出悬浮菜单（Flyout）</span>
+<span class="c"># 窗口宽 &lt; minimumExpandWidth 时自动折叠</span></code></pre>
+
+  <h3>12.4 对照我们模板</h3>
+  <table>
+    <tr><th>机制</th><th>qfluentwidget</th><th>我们 left_side_nav_ui_layout</th></tr>
+    <tr><td>容器</td><td>NavigationInterface（48px 起步 + 内部 panel）</td><td>手写 side_widget（QSplitter 分割）</td></tr>
+    <tr><td>注册导航</td><td><code>addSubInterface</code> 一行（入堆栈+生成项+绑定切换）</td><td><code>addInterface</code> 一行 ✅ 同思路</td></tr>
+    <tr><td>面板分区</td><td>top / scroll / bottom 三段</td><td>menu_area + stretch + bottom_area（简化三段 ✅）</td></tr>
+    <tr><td>折叠</td><td>动画 48↔322px + 状态机 + Flyout 悬浮菜单</td><td>手写 setSizes([0, w]) + 展开按钮</td></tr>
+    <tr><td>高亮联动</td><td>NavigationIndicator 动画 + setCurrentItem</td><td>无选中态</td></tr>
+    <tr><td>子导航/用户卡片/亚克力</td><td>✅ 完整</td><td>❌ 无</td></tr>
+  </table>
+
+  <h3>12.5 什么时候才需要用到这些能力</h3>
+  <table>
+    <tr><th>能力</th><th>什么时候需要</th><th>简单替代（够用就别上）</th></tr>
+    <tr><td>三段布局（top/scroll/bottom）</td><td>页面 &gt; 5 个，或需要"可滚动导航区 + 底部固定区"</td><td>页面少时手写按钮组（我们的模板）</td></tr>
+    <tr><td>子导航树（NavigationTreeWidget）</td><td>菜单有父子层级分组，需要展开/折叠</td><td>平铺按钮 + 分隔线分组</td></tr>
+    <tr><td>折叠动画 + 悬浮菜单（Flyout）</td><td>追求 Win11 风格动效，且折叠后仍要访问子菜单</td><td>直接收起/展开（我们模板已实现）</td></tr>
+    <tr><td>选中指示器动画（Indicator）</td><td>纯视觉增强，无功能价值</td><td>QPushButton checked 高亮</td></tr>
+    <tr><td>亚克力/毛玻璃（Acrylic）</td><td>仅 Windows 11 且想要系统级毛玻璃观感</td><td>纯色背景</td></tr>
+    <tr><td>用户卡片（UserCard）</td><td>侧边栏底部要放头像/账号入口</td><td>QLabel 或普通底部按钮</td></tr>
+    <tr><td>历史路由（qrouter）</td><td>需要"返回上一个页面"的浏览历史</td><td>不需要时忽略</td></tr>
+  </table>
+  <div class="rule">💡 决策原则：页面 ≤ 5 且无层级 → 我们的 <code>addInterface</code> 模板够用，别上 NavigationInterface；真需要层级/动效/毛玻璃/历史时，<b>优先直接引入 qfluentwidget 库本身</b>（成熟稳定），而不是手抄源码——模板的价值是教思路，生产项目用现成库。</div>
 </section>
 
 </main>

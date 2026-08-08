@@ -31,8 +31,13 @@ PyQt6-Layout-Templates/
 │   │   ├── app/                # view(Ui定义+Interface逻辑) + common + components
 │   │   ├── assets/
 │   │   └── README.md
-│   └── top_nav_tabs_layout/    # 顶部导航+多标签页内容区布局
+│   ├── top_nav_tabs_layout/    # 顶部导航+多标签页内容区布局
+│   │   ├── main.py
+│   │   ├── assets/
+│   │   └── README.md
+│   └── frameless_window_layout/ # 无边框窗口+自绘标题栏（纯 PyQt6）
 │       ├── main.py
+│       ├── app/                # view(FramelessWindow+页面) + common + components
 │       ├── assets/
 │       └── README.md
 ├── assets/                 # 全局共用图标、样式资源
@@ -46,6 +51,7 @@ PyQt6-Layout-Templates/
 |left_side_nav_layout|qfluentwidget gallery式分层（demo入口+app包）、注册式addInterface导航、页面继承基类、信号总线跨页面通信、可拖拽双栏+折叠、窗口缩放约束|轻量效率工具、小型管理客户端、本地素材/题库软件|
 |left_side_nav_ui_layout|clock式 Ui/Interface 分离（Ui_定义+Interface逻辑，多重继承+setupUi）、注册式导航、信号总线、可拖拽双栏+折叠|Qt Designer 工作流、UI与逻辑分工协作的桌面工具|
 |top_nav_tabs_layout|顶部导航+多标签页、标签拖动/关闭、新建空白标签、导航高亮联动|多模块切换工具、文档工作台、后台管理系统|
+|frameless_window_layout|纯PyQt6无边框窗口+自绘标题栏、Qt6原生拖拽/边缘缩放、圆角+阴影、最大化自适应|播放器/阅读器、现代观感桌面工具、需完全掌控窗口外观的应用|
 
 ## 使用方式
 1. 安装PyQt6依赖；

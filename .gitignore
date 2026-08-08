@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Reasonix 工具元数据
+.reasonix/
+
+# 系统文件
+Thumbs.db
+.DS_Store

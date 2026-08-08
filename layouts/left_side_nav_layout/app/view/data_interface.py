@@ -1,47 +1,33 @@
 """
- 页面层 - 数据管理页 DataPage
- 页面自治：本页面的布局、控件与交互逻辑全部在类内实现。
- 演示：待办列表——输入、添加、双击删除，均为页面内部逻辑。
+ 页面层 - 数据管理页 DataInterface
+ 页面自治：布局、控件、交互逻辑全部在类内实现。
+ 同时演示信号总线发送：添加待办时广播 signalBus.data_added。
 """
 
-from PyQt6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QListWidget,
-    QMessageBox,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QListWidget, QMessageBox, QPushButton
+
+from app.common.constants import PAGE_BACKGROUNDS
+from app.common.signal_bus import signalBus
+from app.components.example_card import ExampleCard
+from app.view.base_interface import BaseInterface
 
 
-class DataPage(QWidget):
+class DataInterface(BaseInterface):
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setStyleSheet("background:#e8f7ef;")
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
-
-        title = QLabel("数据管理")
-        title.setStyleSheet("font-size:18px;font-weight:600;color:#1f2329;")
-        layout.addWidget(title)
-
-        card = QFrame()
-        card.setStyleSheet("background:#ffffff;border-radius:10px;")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(24, 24, 24, 24)
-        card_layout.setSpacing(12)
-
-        tip = QLabel(
-            "「数据管理」页面：输入文字并添加为列表项，双击列表项删除\n"
-            "所有交互逻辑都在 DataPage 类内实现，主窗口不参与"
+        super().__init__(
+            "数据管理",
+            "页面自治演示：待办列表，添加时经信号总线广播",
+            PAGE_BACKGROUNDS[1],
+            parent,
         )
-        tip.setStyleSheet("font-size:14px;color:#555555;line-height:1.6;")
-        card_layout.addWidget(tip)
+
+        card = ExampleCard("待办列表（交互逻辑在本页面类内）")
+        tip = QLabel(
+            "输入文字并添加为列表项，双击列表项删除。\n"
+            "每次添加都会通过 signalBus.data_added 广播，首页会实时收到。"
+        )
+        tip.setStyleSheet("font-size:13px;color:#555555;line-height:1.6;")
+        card.content_layout.addWidget(tip)
 
         # 输入行
         input_row = QHBoxLayout()
@@ -49,7 +35,6 @@ class DataPage(QWidget):
         self.edit_input = QLineEdit()
         self.edit_input.setPlaceholderText("输入待办事项…")
         self.edit_input.setFixedHeight(34)
-        self.edit_input.returnPressed.connect(self._add_item)
         self.btn_add = QPushButton("添加")
         self.btn_add.setFixedSize(90, 34)
         self.btn_add.setStyleSheet(
@@ -65,10 +50,9 @@ class DataPage(QWidget):
             QPushButton:pressed { background: #1f7047; }
             """
         )
-        self.btn_add.clicked.connect(self._add_item)
         input_row.addWidget(self.edit_input, 1)
         input_row.addWidget(self.btn_add)
-        card_layout.addLayout(input_row)
+        card.content_layout.addLayout(input_row)
 
         # 列表
         self.list_items = QListWidget()
@@ -88,10 +72,13 @@ class DataPage(QWidget):
             QListWidget::item:selected { background: #d9e8f7; color: #1f2329; }
             """
         )
-        self.list_items.itemDoubleClicked.connect(self._remove_item)
-        card_layout.addWidget(self.list_items, 1)
+        card.content_layout.addWidget(self.list_items)
+        self.add_card(card)
 
-        layout.addWidget(card, 1)
+        # 页面内部交互
+        self.edit_input.returnPressed.connect(self._add_item)
+        self.btn_add.clicked.connect(self._add_item)
+        self.list_items.itemDoubleClicked.connect(self._remove_item)
 
     def _add_item(self):
         text = self.edit_input.text().strip()
@@ -99,8 +86,11 @@ class DataPage(QWidget):
             return
         self.list_items.addItem(text)
         self.edit_input.clear()
+        # 信号总线：广播给其他页面（首页接收展示）
+        signalBus.data_added.emit(text)
 
     def _remove_item(self, item):
         self.list_items.takeItem(self.list_items.row(item))
         if self.list_items.count() == 0:
             QMessageBox.information(self, "提示", "所有待办已清空")
+            signalBus.data_cleared.emit()

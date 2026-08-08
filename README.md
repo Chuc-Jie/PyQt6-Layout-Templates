@@ -12,9 +12,9 @@ pip install PyQt6
 ```
 PyQt6-Layout-Templates/
 ├── layouts/                # 所有布局模板分类存放
-│   ├── left_side_nav_layout/   # 左侧常驻导航 + 右侧QStackedWidget多页面（分层架构）
-│   │   ├── main.py             # 组装层：页面注册 + 导航绑定
-│   │   ├── pages/              # 页面层：页面自治（HomePage/DataPage/SettingPage）
+│   ├── left_side_nav_layout/   # 左侧导航+右侧多页面（qfluentwidget gallery 式分层）
+│   │   ├── demo.py             # 入口层
+│   │   ├── app/                # view组装/页面层 + common公共层 + components组件层
 │   │   ├── assets/
 │   │   └── README.md
 │   └── top_nav_tabs_layout/    # 顶部导航+多标签页内容区布局
@@ -28,7 +28,7 @@ PyQt6-Layout-Templates/
 ## 现有模板清单
 |模板文件夹|布局特点|适用场景|
 | ---- | ---- | ---- |
-|left_side_nav_layout|左侧导航+右侧QStackedWidget多页面，分层架构（页面自治+组装层）、可拖拽双栏、侧边栏一键折叠、底部锚定设置按钮、窗口缩放约束|轻量效率工具、小型管理客户端、本地素材/题库软件|
+|left_side_nav_layout|qfluentwidget gallery式分层（demo入口+app包）、注册式addInterface导航、页面继承基类、信号总线跨页面通信、可拖拽双栏+折叠、窗口缩放约束|轻量效率工具、小型管理客户端、本地素材/题库软件|
 |top_nav_tabs_layout|顶部导航+多标签页、标签拖动/关闭、新建空白标签、导航高亮联动|多模块切换工具、文档工作台、后台管理系统|
 
 ## 使用方式

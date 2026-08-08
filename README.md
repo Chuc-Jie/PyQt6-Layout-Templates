@@ -12,7 +12,11 @@ pip install PyQt6
 ```
 PyQt6-Layout-Templates/
 ├── layouts/                # 所有布局模板分类存放
-│   └── left_side_nav_layout/   # 左侧常驻导航+右侧弹性双栏布局（首个模板）
+│   ├── left_side_nav_layout/   # 左侧常驻导航+右侧弹性双栏布局
+│   │   ├── main.py
+│   │   ├── assets/
+│   │   └── README.md
+│   └── top_nav_tabs_layout/    # 顶部导航+多标签页内容区布局
 │       ├── main.py
 │       ├── assets/
 │       └── README.md
@@ -24,6 +28,7 @@ PyQt6-Layout-Templates/
 |模板文件夹|布局特点|适用场景|
 | ---- | ---- | ---- |
 |left_side_nav_layout|可拖拽双栏、侧边栏一键折叠、底部锚定设置按钮、窗口缩放约束|轻量效率工具、小型管理客户端、本地素材/题库软件|
+|top_nav_tabs_layout|顶部导航+多标签页、标签拖动/关闭、新建空白标签、导航高亮联动|多模块切换工具、文档工作台、后台管理系统|
 
 ## 使用方式
 1. 安装PyQt6依赖；

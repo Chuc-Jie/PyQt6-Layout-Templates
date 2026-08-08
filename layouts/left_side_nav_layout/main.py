@@ -1,5 +1,9 @@
 """
-  UI布局预设 - 左侧常驻导航+右侧内容区弹性布局
+  UI布局预设 - 左侧常驻导航 + 右侧 QStackedWidget 多页面
+  分层架构（参考 qfluentwidget 的做法）：
+  - 页面层 pages/：每个页面一个 QWidget 类，布局与交互逻辑在页面内部自治实现
+  - 组装层 main.py：导入页面类 -> 实例化 -> 注册进 QStackedWidget -> 绑定侧边栏导航
+  main.py 只负责组装与导航切换，不掺入页面业务逻辑。
 """
 
 import os
@@ -14,15 +18,20 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QSplitter,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
+
+from pages.data_page import DataPage
+from pages.home_page import HomePage
+from pages.setting_page import SettingPage
 
 
 class SideBarWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Fluent透明图标按钮适配版")
+        self.setWindowTitle("Fluent透明图标按钮适配版（分层多页面）")
         # 默认窗口大小 + 最小/最大窗口尺寸约束
         self.resize(900, 600)
         self.setMinimumSize(QSize(800, 520))
@@ -45,7 +54,7 @@ class SideBarWindow(QMainWindow):
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(self.splitter)
 
-        # ========== 左侧侧边栏区域 ==========
+        # ========== 左侧侧边栏区域（导航） ==========
         self.side_widget = QWidget()
         self.side_widget.setStyleSheet("background:#f0f2f5;")
         self.side_widget.setMaximumWidth(self.side_max_w)
@@ -85,7 +94,7 @@ class SideBarWindow(QMainWindow):
         side_top_row.addWidget(self.btn_collapse)
         side_layout.addLayout(side_top_row)
 
-        # 中间菜单按钮组
+        # 中间菜单按钮组：每个按钮对应右侧一个页面索引
         menu_btn_style = """
         QPushButton {
             color: black;
@@ -105,19 +114,21 @@ class SideBarWindow(QMainWindow):
             border-bottom: 1px solid rgba(0, 0, 0, 0.073);
         }
         """
-        menu_names = ["首页", "占位1", "占位2", "占位3", "关于"]
-        for name in menu_names:
+        self.menu_btns = []
+        for name, index in zip(["首页", "数据管理"], [0, 1]):
             btn = QPushButton(name)
             btn.setFixedHeight(self.menu_btn_height)
             btn.setMinimumWidth(self.menu_btn_mini_w)
             btn.setMaximumWidth(self.menu_btn_max_w)
             btn.setStyleSheet(menu_btn_style)
+            btn.clicked.connect(lambda _, i=index: self.stacked.setCurrentIndex(i))
+            self.menu_btns.append(btn)
             side_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # 核心：弹性空白空间，挤压下方按钮贴底
         side_layout.addStretch()
 
-        # 底部独立设置按钮（深色专属样式区分普通导航）
+        # 底部独立设置按钮（深色专属样式区分普通导航，对应设置页）
         setting_btn_style = """
         QPushButton {
             color: #fff;
@@ -138,42 +149,50 @@ class SideBarWindow(QMainWindow):
         bottom_setting_btn.setMinimumWidth(self.menu_btn_mini_w)
         bottom_setting_btn.setMaximumWidth(self.menu_btn_max_w)
         bottom_setting_btn.setStyleSheet(setting_btn_style)
-        side_layout.addWidget(bottom_setting_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
+        bottom_setting_btn.clicked.connect(lambda: self.stacked.setCurrentIndex(2))
+        side_layout.addWidget(
+            bottom_setting_btn, alignment=Qt.AlignmentFlag.AlignHCenter
+        )
 
-        # ========== 右侧主内容区域 ==========
-        self.main_widget = QWidget()
-        self.main_widget.setStyleSheet("background:#ffffff;")
-        main_layout = QVBoxLayout(self.main_widget)
-        main_layout.setContentsMargins(12, 12, 12, 12)
-        main_layout.setSpacing(10)
+        # ========== 右侧页面区（顶部行 + QStackedWidget） ==========
+        # 组装：导入的页面实例注册进堆栈（对应 qfluentwidget 的 addSubInterface 效果）
+        right_widget = QWidget()
+        right_widget.setStyleSheet("background:#ffffff;")
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
 
-        main_top_row = QHBoxLayout()
-        main_top_row.setSpacing(8)
+        # 折叠侧边栏后，右上角出现展开按钮
         self.btn_expand = QPushButton()
         self.btn_expand.setFixedSize(self.func_btn_size)
         self.btn_expand.setIcon(sidebar_icon)
         self.btn_expand.setIconSize(QSize(22, 22))
         self.btn_expand.setStyleSheet(fluent_icon_btn_style)
         self.btn_expand.hide()
-        main_top_row.addWidget(self.btn_expand)
-        main_top_row.addStretch()
-        main_layout.addLayout(main_top_row)
+        expand_row = QHBoxLayout()
+        expand_row.setContentsMargins(8, 8, 8, 0)
+        expand_row.addWidget(self.btn_expand)
+        expand_row.addStretch()
+        right_layout.addLayout(expand_row)
 
-        tip_label = QLabel(
-            f"侧边栏展开默认宽：{self.side_expand_w}px，最大拖拽宽：{self.side_max_w}px\n菜单按钮宽区间：{self.menu_btn_mini_w}-{self.menu_btn_max_w}px\n按钮水平居中，设置按钮靠底部放置\n窗口默认900×600，最小限制800×520\naddStretch()实现中间弹性留白"
-        )
-        tip_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        tip_label.setStyleSheet("font-size:14px;color:#555;")
-        main_layout.addWidget(tip_label)
+        self.stacked = QStackedWidget()
+        self.home_page = HomePage()
+        self.data_page = DataPage()
+        self.setting_page = SettingPage()
+        self.stacked.addWidget(self.home_page)
+        self.stacked.addWidget(self.data_page)
+        self.stacked.addWidget(self.setting_page)
+        right_layout.addWidget(self.stacked, 1)
 
         self.splitter.addWidget(self.side_widget)
-        self.splitter.addWidget(self.main_widget)
+        self.splitter.addWidget(right_widget)
         self.splitter.setSizes([self.side_expand_w, self.width() - self.side_expand_w])
 
         self.splitter.splitterMoved.connect(self.refresh_btn_status)
         self.btn_collapse.clicked.connect(self.collapse_by_btn)
         self.btn_expand.clicked.connect(self.expand_by_btn)
 
+    # ---------- 侧边栏折叠/展开 ----------
     def refresh_btn_status(self, *_):
         side_w = self.splitter.sizes()[0]
         now_collapsed = side_w <= 0

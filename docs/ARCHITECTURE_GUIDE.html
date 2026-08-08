@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyQt6 布局模板 · 架构手法工具手册</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --ink: #1f2329; --sub: #666a73;
+    --accent: #4070f4; --accent-soft: #e8eefc; --border: #e2e3e5;
+    --code-bg: #1e2227; --code-ink: #d8dee9; --good: #2ea86b; --bad: #c94f4f;
+    --warn: #b98a00;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+         background: var(--bg); color: var(--ink); line-height: 1.7; }
+  header { background: linear-gradient(135deg, #1f2329, #2f343c); color: #fff;
+           padding: 36px 24px 30px; }
+  header h1 { margin: 0 0 6px; font-size: 26px; }
+  header p { margin: 4px 0; color: #c8ccd4; font-size: 14px; }
+  header .tags span { display: inline-block; background: rgba(255,255,255,.12);
+           border-radius: 20px; padding: 2px 12px; margin: 6px 6px 0 0; font-size: 12px; }
+  .layout { display: flex; max-width: 1180px; margin: 0 auto; gap: 24px; padding: 24px 16px; }
+  nav { width: 220px; flex-shrink: 0; position: sticky; top: 16px; align-self: flex-start;
+        max-height: calc(100vh - 32px); overflow: auto; font-size: 13px; }
+  nav a { display: block; color: var(--sub); text-decoration: none; padding: 5px 10px;
+          border-left: 3px solid transparent; border-radius: 4px; }
+  nav a:hover { background: var(--accent-soft); color: var(--accent); }
+  nav a.active { border-left-color: var(--accent); color: var(--accent); font-weight: 600; }
+  nav .nav-sub { padding-left: 18px; }
+  main { flex: 1; min-width: 0; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+            padding: 22px 26px; margin-bottom: 22px; }
+  h2 { font-size: 20px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 16px; margin: 26px 0 10px; color: var(--accent); }
+  h4 { font-size: 14px; margin: 18px 0 8px; }
+  p, li { font-size: 14px; }
+  code { background: #eef1f4; border-radius: 4px; padding: 1px 6px;
+         font-family: Consolas, "Courier New", monospace; font-size: 13px; }
+  pre { background: var(--code-bg); color: var(--code-ink); border-radius: 8px;
+        padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+  pre code { background: none; color: inherit; padding: 0; font-size: 13px; }
+  pre .c { color: #7d8799; }      /* comment */
+  pre .k { color: #81a1f7; }      /* keyword */
+  pre .s { color: #a3c97a; }      /* string */
+  pre .n { color: #d08770; }      /* number/const */
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #f2f4f7; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .rule { border-left: 4px solid var(--accent); background: var(--accent-soft);
+          border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .warn-box { border-left: 4px solid var(--bad); background: #fdeeee;
+          border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .good { color: var(--good); font-weight: 600; }
+  .bad { color: var(--bad); font-weight: 600; }
+  details { border: 1px solid var(--border); border-radius: 8px; margin: 10px 0; padding: 10px 14px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--ink); }
+  details[open] summary { color: var(--accent); }
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; }
+  .flow .node { background: var(--accent-soft); border: 1px solid var(--accent);
+                border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; }
+  .flow .arrow { color: var(--sub); font-size: 16px; }
+  .flow .node.muted { background: #f2f4f7; border-color: var(--border); color: var(--sub); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 900px) { .layout { flex-direction: column; } nav { position: static; width: 100%; } }
+  footer { text-align: center; color: var(--sub); font-size: 12px; padding: 20px; }
+  .toc-top { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PyQt6 布局模板 · 架构手法工具手册</h1>
+  <p>分层架构 + 关注点分离 + UI/Interface 分离 + 事件总线 —— 写代码前翻一翻，防止"忘了写法乱来"。</p>
+  <div class="tags">
+    <span>入口 → 组装 → 页面 → UI</span><span>依赖单向向下</span>
+    <span>页面自治</span><span>signalBus 解耦</span><span>basedpyright 0 error/0 warning</span>
+  </div>
+</header>
+
+<div class="layout">
+<nav id="nav">
+  <a href="#s1">1. 架构总览</a>
+  <a href="#s2">2. 目录结构</a>
+  <a href="#s3">3. 启动时序</a>
+  <a href="#s4">4. 各层详解</a>
+  <a class="nav-sub" href="#s4-1">4.1 main.py 入口</a>
+  <a class="nav-sub" href="#s4-2">4.2 main_window.py 组装</a>
+  <a class="nav-sub" href="#s4-3">4.3 Ui_* 界面定义</a>
+  <a class="nav-sub" href="#s4-4">4.4 *_interface.py 逻辑</a>
+  <a class="nav-sub" href="#s4-5">4.5 common / components</a>
+  <a href="#s5">5. 数据流与交互</a>
+  <a href="#s6">6. 新增页面教程</a>
+  <a href="#s7">7. 命名约定</a>
+  <a href="#s8">8. 反模式详解</a>
+  <a href="#s9">9. basedpyright 红线</a>
+  <a href="#s10">10. 环境与调试</a>
+  <a href="#s11">11. FAQ</a>
+</nav>
+
+<main>
+
+<section id="s1">
+  <h2>1. 架构总览</h2>
+  <p>整套手法 = <b>分层架构</b> + <b>关注点分离</b>。依赖方向<b>单向向下</b>，同层页面之间互不引用，跨页面通信走事件总线。对应 qfluentwidget 官方（gallery / clock 示例）的组织方式。</p>
+  <div class="flow">
+    <div class="node">main.py<br><small>启动入口</small></div><span class="arrow">↓</span>
+    <div class="node">main_window.py<br><small>组装层（注册）</small></div><span class="arrow">↓</span>
+    <div class="node">xxx_interface.py<br><small>页面逻辑（Presenter）</small></div><span class="arrow">↓</span>
+    <div class="node">Ui_XxxInterface.py<br><small>界面定义（View）</small></div>
+  </div>
+  <div class="flow">
+    <div class="node muted">signal_bus.py</div>
+    <div class="node muted">constants.py</div>
+    <div class="node muted">components/</div>
+    <span class="node muted" style="border-style:dashed">公共层/组件层：被上层任意引用</span>
+  </div>
+  <div class="rule">🔒 依赖铁律：<code>import</code> 方向只能从上往下。页面<b>禁止</b> import 其他页面或组装层；组装层<b>禁止</b>写业务逻辑；Ui_ 文件<b>禁止</b>出现任何"动作"。</div>
+</section>
+
+<section id="s2">
+  <h2>2. 目录结构</h2>
+  <p>以 <code>left_side_nav_ui_layout</code>（Ui/Interface 分离版）为基准：</p>
+  <pre><code>left_side_nav_ui_layout/
+├─ <span class="k">main.py</span>                      <span class="c"># ④ 启动入口：导入组装层 -> show</span>
+├─ app/
+│  ├─ view/
+│  │  ├─ <span class="k">main_window.py</span>          <span class="c"># ③ 组装层：注册式 addInterface + 折叠</span>
+│  │  ├─ <span class="k">Ui_HomeInterface.py</span>     <span class="c"># ① 首页界面定义（零逻辑）</span>
+│  │  ├─ <span class="k">Ui_DataInterface.py</span>     <span class="c"># ① 数据管理界面定义</span>
+│  │  ├─ <span class="k">Ui_SettingInterface.py</span>  <span class="c"># ① 设置界面定义</span>
+│  │  ├─ <span class="k">home_interface.py</span>       <span class="c"># ② 首页逻辑：class HomeInterface(Ui_HomeInterface, QWidget)</span>
+│  │  ├─ <span class="k">data_interface.py</span>       <span class="c"># ② 数据管理逻辑</span>
+│  │  └─ <span class="k">setting_interface.py</span>    <span class="c"># ② 设置逻辑</span>
+│  ├─ common/
+│  │  ├─ <span class="k">signal_bus.py</span>           <span class="c"># 事件总线单例（跨页面通信唯一通道）</span>
+│  │  └─ <span class="k">constants.py</span>            <span class="c"># 公共颜色/样式常量</span>
+│  └─ components/
+│     └─ <span class="k">example_card.py</span>         <span class="c"># 可复用组件（页面/界面定义引用）</span>
+└─ assets/                       <span class="c"># 图标资源</span></code></pre>
+</section>
+
+<section id="s3">
+  <h2>3. 启动时序</h2>
+  <p>程序从 <code>python main.py</code> 到界面可交互，依次发生：</p>
+  <pre><code><span class="c"># 1) main.py：创建 QApplication + MainWindow</span>
+w = MainWindow()
+
+<span class="c"># 2) MainWindow.__init__ 内，按顺序：</span>
+<span class="c">#    ① 搭建侧边栏骨架（标题行 / 中部菜单区 / 弹性留白 / 底部区）</span>
+<span class="c">#    ② 搭建右侧容器（折叠后展开按钮行 + QStackedWidget）</span>
+self.homeInterface = HomeInterface()        <span class="c"># ③ 实例化页面</span>
+<span class="c">#    └─ HomeInterface.__init__ 内部：</span>
+<span class="c">#       super().__init__(parent)  -> QWidget 初始化（MRO 跳过 Ui_）</span>
+<span class="c">#       self.setupUi(self)        -> 创建全部控件并摆放</span>
+<span class="c">#       self.btnClick.clicked.connect(...) -> 挂业务逻辑</span>
+self.addInterface("首页", self.homeInterface) <span class="c"># ④ 注册：入堆栈 + 生成导航按钮 + 绑定切换</span>
+
+<span class="c"># 3) w.show() 后，用户点击导航按钮 -> stacked.setCurrentIndex(i) 切换页面</span></code></pre>
+  <div class="warn-box">⚠️ 时序陷阱（PyQt6 6.11 + Python 3.14 会因此<b>原生崩溃</b>）：构造期间若调用会触发信号的方法（如 <code>setChecked(True)</code> 触发 <code>toggled</code>），必须确保被触发的槽函数依赖的所有控件<b>已经创建完毕</b>（setupUi 之后、控件创建之后），并在槽函数内加 <code>hasattr</code> 防御。</div>
+</section>
+
+<section id="s4">
+  <h2>4. 各层详解</h2>
+
+  <h3 id="s4-1">4.1 入口 main.py —— 最薄的一层</h3>
+  <p>职责：创建 <code>QApplication</code>、导入组装层、显示。不写任何组装或业务。</p>
+  <pre><code><span class="k">import</span> sys
+
+<span class="k">from</span> PyQt6.QtWidgets <span class="k">import</span> QApplication
+
+<span class="k">from</span> app.view.main_window <span class="k">import</span> MainWindow
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    app = QApplication(sys.argv)
+    w = MainWindow()
+    w.show()
+    sys.exit(app.exec())</code></pre>
+
+  <h3 id="s4-2">4.2 组装层 main_window.py —— 注册式导航</h3>
+  <p>职责：搭建侧边栏骨架、维护 <code>QStackedWidget</code>、用 <code>addInterface</code> 注册页面、折叠/展开。<b>零业务逻辑</b>。</p>
+  <pre><code><span class="k">class</span> <span class="n">MainWindow</span>(QMainWindow):
+    <span class="k">def</span> __init__(self):
+        <span class="k">super</span>().__init__()
+        <span class="c"># ... 窗口尺寸、常量、侧边栏骨架、右侧容器 ...</span>
+
+        <span class="c"># 先存实例属性，再注册（与 qfluentwidget 一致）</span>
+        self.homeInterface = HomeInterface()
+        self.dataInterface = DataInterface()
+        self.settingInterface = SettingInterface()
+        self.interface_btns: <span class="k">list</span>[QPushButton] = []
+        self.addInterface(<span class="s">"首页"</span>, self.homeInterface)
+        self.addInterface(<span class="s">"数据管理"</span>, self.dataInterface)
+        self.addInterface(<span class="s">"设置"</span>, self.settingInterface, position=<span class="s">"bottom"</span>)
+        self.stacked.setCurrentIndex(<span class="n">0</span>)
+
+    <span class="k">def</span> addInterface(self, text: <span class="k">str</span>, widget: QWidget, position: <span class="k">str</span> = <span class="s">"top"</span>) -> <span class="k">int</span>:
+        <span class="s">"""注册：入 QStackedWidget + 生成导航按钮 + 绑定切换，返回页面索引"""</span>
+        index = self.stacked.addWidget(widget)
+        btn = QPushButton(text)
+        btn.setFixedHeight(self.menu_btn_height)
+        <span class="c"># ... 按 position 应用 top/bottom 样式，加入 menu_area / bottom_area ...</span>
+        btn.clicked.connect(<span class="k">lambda</span> _, i=index: self.stacked.setCurrentIndex(i))
+        self.interface_btns.append(btn)
+        <span class="k">return</span> index</code></pre>
+  <div class="rule">🔒 main_window 里<b>禁止</b>出现 <code>setText</code>、操作列表、弹窗等业务动作。它只做：建页面实例 → 注册 → 折叠展开。</div>
+
+  <h3 id="s4-3">4.3 Ui_* 界面定义层 —— 只画界面</h3>
+  <p>pyuic 风格：<code>object</code> 基类 + <code>setupUi</code>/<code>retranslateUi</code>。结构与 Qt Designer 导出一致，控件名 <b>camelCase</b>，是界面层与逻辑层的<b>唯一约定接口</b>。</p>
+  <pre><code><span class="k">class</span> <span class="n">Ui_HomeInterface</span>(<span class="n">object</span>):
+    <span class="k">def</span> setupUi(self, HomeInterface: QWidget):       <span class="c"># 参数必须注解</span>
+        HomeInterface.setObjectName(<span class="s">"HomeInterface"</span>)
+        HomeInterface.setStyleSheet(<span class="k">f</span><span class="s">"background:{PAGE_BACKGROUNDS[0]};"</span>)
+
+        self.verticalLayout = QVBoxLayout(HomeInterface)
+        self.verticalLayout.setContentsMargins(<span class="n">20</span>, <span class="n">20</span>, <span class="n">20</span>, <span class="n">20</span>)
+        self.verticalLayout.setSpacing(<span class="n">12</span>)
+
+        <span class="c"># 标题 + 副标题</span>
+        self.titleLabel = QLabel(HomeInterface)
+        self.titleLabel.setStyleSheet(TITLE_STYLE)
+        self.verticalLayout.addWidget(self.titleLabel)
+
+        <span class="c"># 业务控件（逻辑层通过 self.xxx 访问）</span>
+        self.lblCount = QLabel(HomeInterface)
+        self.btnClick = QPushButton(HomeInterface)
+        self.btnClick.setFixedSize(<span class="n">110</span>, <span class="n">36</span>)
+        <span class="c"># ... 布局 addWidget ...</span>
+
+        self.verticalLayout.addStretch()
+        self.retranslateUi(HomeInterface)
+
+    <span class="k">def</span> retranslateUi(self, HomeInterface: QWidget):
+        self.titleLabel.setText(<span class="s">"首页"</span>)
+        self.btnClick.setText(<span class="s">"点我 +1"</span>)
+        self.lblCount.setText(<span class="s">"点击次数：0"</span>)</code></pre>
+  <div class="rule">🔒 Ui_ 文件里<b>禁止</b>出现：<code>clicked.connect</code>、<code>if</code> 业务判断、<code>signalBus</code>、任何"动作"。它只创建控件 + 摆放 + 初始文本。</div>
+
+  <h3 id="s4-4">4.4 页面逻辑层 *_interface.py —— 多重继承 + 逻辑</h3>
+  <p>核心手法：<code>class XxxInterface(Ui_XxxInterface, QWidget)</code> 多重继承。MRO 顺序：<code>XxxInterface → Ui_XxxInterface → QWidget → QObject</code>。因为 <code>Ui_</code> 类没有定义 <code>__init__</code>，<code>super().__init__(parent=parent)</code> 会<b>自动跳过 Ui_</b> 直达 <code>QWidget.__init__</code>。</p>
+  <pre><code><span class="k">class</span> <span class="n">HomeInterface</span>(Ui_HomeInterface, QWidget):
+    <span class="k">def</span> __init__(self, parent: QWidget | <span class="k">None</span> = <span class="k">None</span>):
+        <span class="k">super</span>().__init__(parent=parent)   <span class="c"># MRO 跳过 Ui_，直达 QWidget</span>
+        self.setupUi(self)                 <span class="c"># 安装界面（创建全部控件）</span>
+
+        <span class="c"># 之后直接操作 UI 控件 + 挂逻辑</span>
+        self.count = <span class="n">0</span>
+        self.btnClick.clicked.connect(self._on_click)
+        signalBus.data_added.connect(self._on_data_added)
+
+    <span class="k">def</span> _on_click(self):
+        self.count += <span class="n">1</span>
+        self.lblCount.setText(<span class="k">f</span><span class="s">"点击次数：{self.count}"</span>)
+
+    <span class="k">def</span> _on_data_added(self, text: <span class="k">str</span>):
+        <span class="k">if</span> <span class="k">not</span> hasattr(self, <span class="s">"lblLast"</span>):   <span class="c"># 防御：槽内异常会原生崩溃</span>
+            <span class="k">return</span>
+        self.lblLast.setText(<span class="k">f</span><span class="s">"最近添加：{text}"</span>)</code></pre>
+  <div class="rule">🔒 页面<b>禁止</b> import 其他页面/组装层；只依赖自己的 Ui_、<code>app.common.*</code>、<code>app.components.*</code>。</div>
+
+  <h3 id="s4-5">4.5 common / components —— 公共支撑</h3>
+  <table>
+    <tr><th>文件</th><th>职责</th><th>用法</th></tr>
+    <tr><td><code>signal_bus.py</code></td><td>事件总线单例：跨页面通信唯一通道</td><td>发送 <code>signalBus.xxx.emit(...)</code>；接收 <code>signalBus.xxx.connect(槽)</code></td></tr>
+    <tr><td><code>constants.py</code></td><td>公共颜色/尺寸/样式常量</td><td><code>from app.common.constants import PAGE_BACKGROUNDS</code></td></tr>
+    <tr><td><code>components/</code></td><td>可复用自绘控件</td><td><code>from app.components.example_card import ExampleCard</code>，界面定义里直接复用</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2>5. 数据流与交互</h2>
+  <h3>页面内交互（单页自治）</h3>
+  <div class="flow">
+    <div class="node">用户点击 btnClick</div><span class="arrow">→</span>
+    <div class="node">Interface 槽 _on_click</div><span class="arrow">→</span>
+    <div class="node">更新 self.lblCount</div>
+  </div>
+  <p>整个过程只发生在该页面类内部，不经过组装层、不依赖其他页面。</p>
+
+  <h3>跨页面通信（事件总线）</h3>
+  <div class="flow">
+    <div class="node">数据页 _add_item</div><span class="arrow">→</span>
+    <div class="node">signalBus.data_added.emit(text)</div><span class="arrow">→</span>
+    <div class="node">首页 _on_data_added 接收并展示</div>
+  </div>
+  <p>两个页面<b>互不引用</b>，只通过信号总线这个"中间人"对话。新增信号 = 在 <code>SignalBus</code> 类里加一行 <code>pyqtSignal(...)</code>。</p>
+  <pre><code><span class="k">class</span> <span class="n">SignalBus</span>(QObject):
+    data_added = pyqtSignal(<span class="k">str</span>)   <span class="c"># 参数类型 str</span>
+    data_cleared = pyqtSignal()      <span class="c"># 无参数</span>
+
+signalBus = SignalBus()              <span class="c"># 全局单例，各文件 import 同一个实例</span></code></pre>
+</section>
+
+<section id="s6">
+  <h2>6. 新增页面教程（8 步）</h2>
+  <p>新增页面<b>不需要改任何旧页面</b>——这就是开闭原则的好处。</p>
+  <table>
+    <tr><th>#</th><th>动作</th><th>关键点</th></tr>
+    <tr><td>1</td><td>建 <code>app/view/Ui_XxxInterface.py</code></td><td>只画界面：标题/副标题/卡片/控件，零逻辑</td></tr>
+    <tr><td>2</td><td>建 <code>app/view/xxx_interface.py</code></td><td><code>class XxxInterface(Ui_XxxInterface, QWidget)</code></td></tr>
+    <tr><td>3</td><td>逻辑里挂界面与业务</td><td><code>super().__init__(parent=parent)</code> → <code>self.setupUi(self)</code> → connect</td></tr>
+    <tr><td>4</td><td>main_window.py 顶部 import</td><td><code>from app.view.xxx_interface import XxxInterface</code></td></tr>
+    <tr><td>5</td><td>__init__ 里存实例</td><td><code>self.xxxInterface = XxxInterface()</code></td></tr>
+    <tr><td>6</td><td>注册</td><td><code>self.addInterface("标题", self.xxxInterface)</code>；底部入口加 <code>position="bottom"</code></td></tr>
+    <tr><td>7</td><td>类型检查</td><td><code>.venv\Scripts\basedpyright.exe layouts/</code> → 0 error / 0 warning</td></tr>
+    <tr><td>8</td><td>冒烟</td><td><code>python main.py</code> 或 offscreen 测试</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2>7. 命名约定</h2>
+  <table>
+    <tr><th>对象</th><th>规则</th><th>示例</th></tr>
+    <tr><td>界面定义文件</td><td><code>Ui_</code> + 页面名 + <code>.py</code></td><td><code>Ui_HomeInterface.py</code></td></tr>
+    <tr><td>逻辑文件</td><td>小写蛇形</td><td><code>home_interface.py</code></td></tr>
+    <tr><td>界面定义类</td><td><code>Ui_</code> + 页面类名</td><td><code>class Ui_HomeInterface</code></td></tr>
+    <tr><td>逻辑类</td><td>页面名 + <code>Interface</code></td><td><code>class HomeInterface</code></td></tr>
+    <tr><td>UI 控件属性</td><td><b>camelCase</b></td><td><code>titleLabel</code>、<code>btnClick</code>、<code>lblCount</code></td></tr>
+    <tr><td>方法</td><td>snake_case，私有 <code>_</code> 前缀</td><td><code>_on_click</code>、<code>_add_item</code></td></tr>
+    <tr><td>信号</td><td>snake_case</td><td><code>data_added</code></td></tr>
+    <tr><td>页面背景色</td><td>按页面取 <code>PAGE_BACKGROUNDS[i]</code></td><td><code>PAGE_BACKGROUNDS[0]</code></td></tr>
+  </table>
+  <div class="warn-box">⚠️ 控件名是 Ui_ 与逻辑层的<b>约定接口</b>：改了 Ui_ 里的属性名，必须同步改逻辑层的引用，否则运行时报 AttributeError（进而触发原生崩溃）。</div>
+</section>
+
+<section id="s8">
+  <h2>8. 反模式详解（"乱来"的样子）</h2>
+  <details>
+    <summary>❌ 把逻辑写进 Ui_ 文件（最常见）</summary>
+    <p><b>症状：</b><code>Ui_HomeInterface.py</code> 里出现 <code>clicked.connect</code>、<code>if</code>、<code>signalBus</code>。</p>
+    <p><b>危害：</b>界面与逻辑耦合，改逻辑要动界面定义；pyuic 重新生成会覆盖掉你写的逻辑；两个职责挤在一个文件里，读起来乱。</p>
+    <p><b>正确：</b>Ui_ 只 <code>addWidget</code> 和 <code>setText</code>；所有 connect 和判断进 <code>*_interface.py</code>。</p>
+  </details>
+  <details>
+    <summary>❌ 页面直接 import 另一个页面</summary>
+    <p><b>症状：</b><code>from app.view.data_interface import DataInterface</code> 出现在 <code>home_interface.py</code> 里，直接调对方的方法拿数据。</p>
+    <p><b>危害：</b>两个页面强耦合——改一个必查另一个；形成循环 import 风险；测试无法单独跑一个页面。</p>
+    <p><b>正确：</b>数据页 <code>signalBus.data_added.emit(text)</code>，首页 <code>signalBus.data_added.connect(...)</code>。</p>
+  </details>
+  <details>
+    <summary>❌ main_window 里掺业务</summary>
+    <p><b>症状：</b>组装层里写 <code>self.homeInterface.lblCount.setText(...)</code>、页面按钮的槽函数定义在 main_window 里。</p>
+    <p><b>危害：</b>组装层膨胀，页面自治被破坏；换个页面组合方式时业务逻辑被一起搬走。</p>
+    <p><b>正确：</b>组装层只做"建实例 + 注册 + 折叠"三件事。</p>
+  </details>
+  <details>
+    <summary>❌ 页面继承 QMainWindow / 自建窗口</summary>
+    <p><b>症状：</b>页面类写 <code>class HomeInterface(QMainWindow)</code> 或自己 <code>resize</code>、<code>setWindowTitle</code>。</p>
+    <p><b>危害：</b>页面是内容，不是窗口；多页面会变成多窗口，导航切换失效。</p>
+    <p><b>正确：</b>页面一律 <code>QWidget</code>；全应用只有一个 <code>MainWindow</code>。</p>
+  </details>
+  <details>
+    <summary>❌ 忘了 setupUi / 忘存实例属性</summary>
+    <p><b>症状：</b>构造里没调 <code>self.setupUi(self)</code> → 控件全是 None，一访问就崩；或 <code>addInterface("首页", HomeInterface())</code> 没先存 <code>self.homeInterface</code> → 后续拿不到页面实例。</p>
+    <p><b>正确：</b>构造里 <code>super().__init__</code> 后<b>立即</b> <code>setupUi</code>；先 <code>self.homeInterface = HomeInterface()</code> 再注册。</p>
+  </details>
+  <details>
+    <summary>❌ 手写 Ui_ 漏参数注解 / 空集合不带类型</summary>
+    <p><b>症状：</b>basedpyright 报 <code>reportUnknownMemberType</code>。</p>
+    <p><b>正确：</b><code>def setupUi(self, HomeInterface: QWidget)</code>；<code>self.btns: list[QPushButton] = []</code>。</p>
+  </details>
+</section>
+
+<section id="s9">
+  <h2>9. basedpyright 红线（0 error / 0 warning）</h2>
+  <p>配置在根目录 <code>pyproject.toml</code> 的 <code>[tool.basedpyright]</code>。写代码时直接遵守，不要写完再靠检查修：</p>
+  <table>
+    <tr><th>红线</th><th>正确写法</th></tr>
+    <tr><td>不留未使用的 import（error）</td><td>import 了就要用，否则删掉</td></tr>
+    <tr><td>函数/方法参数全注解</td><td><code>parent: QWidget | None = None</code>、<code>index: int</code>、<code>item: QListWidgetItem</code>、槽函数 <code>*_args: object</code></td></tr>
+    <tr><td>空集合带类型</td><td><code>self.nav_btns: list[QPushButton] = []</code>、<code>parts: list[str] = []</code></td></tr>
+    <tr><td>手写 Ui_ 的 setupUi/retranslateUi 参数注解</td><td><code>def setupUi(self, HomeInterface: QWidget)</code></td></tr>
+    <tr><td>pyuic 生成的 Ui_ 文件</td><td>用文件级 <code># pyright: reportUnknownMemberType=false</code> 豁免，不手改生成物</td></tr>
+  </table>
+  <p>提交前验证：<code>.venv\Scripts\basedpyright.exe layouts/</code> → 应输出 <code>0 errors, 0 warnings, 0 notes</code>。</p>
+</section>
+
+<section id="s10">
+  <h2>10. 环境与调试</h2>
+  <h3>运行环境（本项目唯一）</h3>
+  <table>
+    <tr><th>项</th><th>值</th></tr>
+    <tr><td>解释器</td><td><code>D:\Programme\Python314Code\FramelessWindow\.venv\Scripts\python.exe</code>（Python 3.14.6）</td></tr>
+    <tr><td>依赖</td><td>PyQt6 6.11 + PyQt6-stubs（类型桩，basedpyright 必需）</td></tr>
+    <tr><td>类型检查</td><td><code>.venv\Scripts\basedpyright.exe layouts/</code></td></tr>
+  </table>
+  <div class="warn-box">⚠️ 系统 <code>python</code>/<code>python3</code> 是商店占位程序（不可用）；<code>py</code> 指向 Python312（无 PyQt6）。装包一律用 <code>.venv</code> + 清华镜像源。</div>
+
+  <h3>PyQt6 6.11 + Python 3.14 原生崩溃坑</h3>
+  <p><b>信号槽函数内抛出 Python 异常 → 进程直接崩溃</b>（退出码 -1073740791，无任何报错，faulthandler 也抓不到）。防御三招：</p>
+  <ol>
+    <li>槽函数开头 <code>hasattr</code> / <code>try-except</code> 防御；</li>
+    <li>构造期间会触发信号的方法（<code>setChecked(True)</code> 等）放在依赖控件创建之后；</li>
+    <li>遇到"无故崩溃无报错"，优先怀疑信号槽内异常，用 <code>QT_QPA_PLATFORM=offscreen</code> + 逐段构造二分定位。</li>
+  </ol>
+
+  <h3>离线冒烟测试模板</h3>
+  <pre><code><span class="c"># 临时脚本（测试完删除）：</span>
+<span class="k">import</span> os, sys
+os.environ.setdefault(<span class="s">"QT_QPA_PLATFORM"</span>, <span class="s">"offscreen"</span>)
+sys.path.insert(<span class="n">0</span>, <span class="s">r"模板根目录"</span>)
+<span class="k">from</span> PyQt6.QtWidgets <span class="k">import</span> QApplication
+<span class="k">from</span> app.view.main_window <span class="k">import</span> MainWindow
+
+app = QApplication(sys.argv)
+w = MainWindow()
+<span class="k">assert</span> w.stacked.count() == <span class="n">3</span>
+w.interface_btns[<span class="n">1</span>].click()
+<span class="k">assert</span> w.stacked.currentIndex() == <span class="n">1</span>
+<span class="k">print</span>(<span class="s">"SMOKE OK"</span>)</code></pre>
+</section>
+
+<section id="s11">
+  <h2>11. FAQ</h2>
+  <details>
+    <summary>Q：为什么 <code>super().__init__(parent=parent)</code> 不会调 Ui_ 的构造？</summary>
+    <p>MRO 是 <code>XxxInterface → Ui_XxxInterface → QWidget → QObject</code>。<code>super()</code> 找下一个<b>定义了 <code>__init__</code> 的类</b>；<code>Ui_XxxInterface(object)</code> 没定义 <code>__init__</code>，所以被跳过，直达 <code>QWidget.__init__</code>。这是 Ui/Interface 分离能成立的关键。</p>
+  </details>
+  <details>
+    <summary>Q：Ui_ 文件能可视化编辑吗？</summary>
+    <p>能。在 Qt Designer 里画 <code>.ui</code> → <code>pyuic6 xxx.ui -o Ui_XxxInterface.py</code> 重新生成（逻辑文件不用动）。生成的 Ui_ 若触发 basedpyright 报错，用文件级 <code># pyright:</code> 豁免，别手改。</p>
+  </details>
+  <details>
+    <summary>Q：三个模板有什么区别，新页面用哪个？</summary>
+    <table>
+      <tr><th>模板</th><th>页面组织</th><th>入口</th></tr>
+      <tr><td><code>left_side_nav_layout</code></td><td>页面继承 BaseInterface（基类给骨架）</td><td><code>demo.py</code></td></tr>
+      <tr><td><code>left_side_nav_ui_layout</code></td><td><b>Ui_ 定义 + Interface 逻辑分离（本手册主推）</b></td><td><code>main.py</code></td></tr>
+      <tr><td><code>top_nav_tabs_layout</code></td><td>单文件 + QTabWidget</td><td><code>main.py</code></td></tr>
+    </table>
+    <p>新页面推荐一律按第 6 节 Checklist 走 Ui/Interface 分离。</p>
+  </details>
+  <details>
+    <summary>Q：跨页面通信除了 signalBus 还有别的吗？</summary>
+    <p>小型项目用 signalBus 足够（发布-订阅解耦）。页面需要主动拉数据时，可让组装层持有页面引用做中介（组装层是唯一允许认识所有页面的地方），但不要页面间直接引用。</p>
+  </details>
+</section>
+
+</main>
+</div>
+
+<footer>PyQt6-Layout-Templates · 架构手法工具手册 · 配套源码见 <code>layouts/</code>，详细文字版见 <code>docs/ARCHITECTURE.md</code></footer>
+
+<script>
+  // 侧边目录：滚动时高亮当前章节
+  const links = [...document.querySelectorAll('nav a')];
+  const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const active = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = '#' + e.target.id;
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === id));
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+  sections.forEach(s => active.observe(s));
+</script>
+</body>
+</html>

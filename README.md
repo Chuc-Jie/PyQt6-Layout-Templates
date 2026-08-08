@@ -36,6 +36,7 @@ PyQt6-Layout-Templates/
 │       ├── assets/
 │       └── README.md
 ├── assets/                 # 全局共用图标、样式资源
+├── docs/                   # 架构速查手册（写代码前翻一翻，防乱来）
 └── README.md               # 仓库总说明
 ```
 

@@ -3,7 +3,15 @@
  只描述界面长什么样，零业务逻辑；逻辑由 data_interface.py 的 DataInterface 实现。
 """
 
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QListWidget, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.common.constants import PAGE_BACKGROUNDS, SUBTITLE_STYLE, TITLE_STYLE
 from app.components.example_card import ExampleCard

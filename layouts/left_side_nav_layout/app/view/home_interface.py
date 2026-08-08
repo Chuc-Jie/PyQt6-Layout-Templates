@@ -4,17 +4,21 @@
  同时演示信号总线接收：数据管理页添加待办时，本页面收到广播并展示。
 """
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
-from app.common.constants import ACCENT_BLUE, ACCENT_BLUE_HOVER, ACCENT_BLUE_PRESSED, PAGE_BACKGROUNDS
+from app.common.constants import (
+    ACCENT_BLUE,
+    ACCENT_BLUE_HOVER,
+    ACCENT_BLUE_PRESSED,
+    PAGE_BACKGROUNDS,
+)
 from app.common.signal_bus import signalBus
 from app.components.example_card import ExampleCard
 from app.view.base_interface import BaseInterface
 
 
 class HomeInterface(BaseInterface):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(
             "首页",
             "页面自治演示：计数器 + 信号总线接收",

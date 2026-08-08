@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
         self.homeInterface = HomeInterface()
         self.dataInterface = DataInterface()
         self.settingInterface = SettingInterface()
-        self.interface_btns = []
+        self.interface_btns: list[QPushButton] = []
         self.addInterface("首页", self.homeInterface)
         self.addInterface("数据管理", self.dataInterface)
         self.addInterface("设置", self.settingInterface, position="bottom")
@@ -206,7 +206,7 @@ class MainWindow(QMainWindow):
         return index
 
     # ---------- 侧边栏折叠/展开 ----------
-    def refresh_btn_status(self, *_):
+    def refresh_btn_status(self, *_args: object):
         side_w = self.splitter.sizes()[0]
         now_collapsed = side_w <= 0
         if now_collapsed == self.side_collapsed:

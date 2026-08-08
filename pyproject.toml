@@ -1,0 +1,14 @@
+[tool.basedpyright]
+# 代码规范检查：供 VSCode basedpyright 插件与 CLI 共同使用
+pythonVersion = "3.14"
+pythonPlatform = "Windows"
+typeCheckingMode = "standard"
+
+# 常用诊断开关
+reportMissingImports = true
+reportMissingTypeStubs = true
+reportUnusedImport = true
+reportUnusedVariable = true
+reportPrivateUsage = "warning"
+reportUnknownMemberType = "warning"
+reportIncompatibleMethodOverride = "warning"

@@ -64,7 +64,7 @@ class TopNavTabsWindow(QMainWindow):
         )
         nav_layout.addWidget(nav_title)
 
-        self.nav_btns = []
+        self.nav_btns: list[QPushButton] = []
         for name in self.module_names:
             btn = QPushButton(name)
             btn.setCheckable(True)
@@ -161,7 +161,7 @@ class TopNavTabsWindow(QMainWindow):
         self.open_module(self.module_names[0])
 
     # ---------- 标签页构建 ----------
-    def _build_tab_page(self, module_name, bg_color):
+    def _build_tab_page(self, module_name: str, bg_color: str):
         """构建一个占位标签页：顶部模块标题 + 白色占位卡片。"""
         page = QWidget()
         page.setStyleSheet(f"background:{bg_color};")
@@ -192,7 +192,7 @@ class TopNavTabsWindow(QMainWindow):
         return page
 
     # ---------- 标签页操作 ----------
-    def open_module(self, module_name):
+    def open_module(self, module_name: str):
         """打开模块页：同名标签已存在则切换，否则新建。"""
         for i in range(self.tab_widget.count()):
             if self.tab_widget.tabText(i) == module_name:
@@ -211,14 +211,14 @@ class TopNavTabsWindow(QMainWindow):
         self.tab_widget.addTab(page, f"新标签 {index}")
         self.tab_widget.setCurrentIndex(self.tab_widget.count() - 1)
 
-    def close_tab(self, index):
+    def close_tab(self, index: int):
         """关闭指定标签；全部关闭后自动补一个首页，避免空内容区。"""
         self.tab_widget.removeTab(index)
         if self.tab_widget.count() == 0:
             self.open_module(self.module_names[0])
 
     # ---------- 状态同步 ----------
-    def sync_nav_highlight(self, current_index):
+    def sync_nav_highlight(self, current_index: int):
         """切换标签时，同步高亮对应顶部导航按钮（空白标签不高亮任何按钮）。"""
         if current_index < 0:
             return

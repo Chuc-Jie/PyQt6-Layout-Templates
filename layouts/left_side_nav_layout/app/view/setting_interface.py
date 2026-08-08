@@ -5,7 +5,7 @@
 """
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QCheckBox, QLabel, QPushButton
+from PyQt6.QtWidgets import QCheckBox, QLabel, QPushButton, QWidget
 
 from app.common.constants import PAGE_BACKGROUNDS
 from app.components.example_card import ExampleCard
@@ -13,7 +13,7 @@ from app.view.base_interface import BaseInterface
 
 
 class SettingInterface(BaseInterface):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(
             "设置",
             "页面自治演示：选项开关 + 恢复默认",
@@ -68,7 +68,7 @@ class SettingInterface(BaseInterface):
         # 防御：控件尚未初始化完成时直接忽略（避免槽内异常）
         if not hasattr(self, "lbl_status"):
             return
-        parts = []
+        parts: list[str] = []
         if self.cb_auto_save.isChecked():
             parts.append("自动保存")
         if self.cb_notify.isChecked():

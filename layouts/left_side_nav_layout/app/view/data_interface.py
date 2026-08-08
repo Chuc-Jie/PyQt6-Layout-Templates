@@ -4,7 +4,16 @@
  同时演示信号总线发送：添加待办时广播 signalBus.data_added。
 """
 
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QListWidget, QMessageBox, QPushButton
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QWidget,
+)
 
 from app.common.constants import PAGE_BACKGROUNDS
 from app.common.signal_bus import signalBus
@@ -13,7 +22,7 @@ from app.view.base_interface import BaseInterface
 
 
 class DataInterface(BaseInterface):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(
             "数据管理",
             "页面自治演示：待办列表，添加时经信号总线广播",
@@ -89,7 +98,7 @@ class DataInterface(BaseInterface):
         # 信号总线：广播给其他页面（首页接收展示）
         signalBus.data_added.emit(text)
 
-    def _remove_item(self, item):
+    def _remove_item(self, item: QListWidgetItem):
         self.list_items.takeItem(self.list_items.row(item))
         if self.list_items.count() == 0:
             QMessageBox.information(self, "提示", "所有待办已清空")

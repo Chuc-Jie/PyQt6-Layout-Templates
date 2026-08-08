@@ -10,7 +10,7 @@ from app.common.constants import SUBTITLE_STYLE, TITLE_STYLE
 
 
 class BaseInterface(QWidget):
-    def __init__(self, title: str, subtitle: str, bg_color: str, parent=None):
+    def __init__(self, title: str, subtitle: str, bg_color: str, parent: QWidget | None = None):
         super().__init__(parent)
         self.setStyleSheet(f"background:{bg_color};")
 

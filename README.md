@@ -8,6 +8,15 @@
 pip install PyQt6
 ```
 
+### 代码规范检查（开发时推荐）
+- 类型检查：**basedpyright**（VSCode 插件 + 命令行均可）
+- 类型桩：**PyQt6-stubs**（让 basedpyright 能对 Qt API 做类型推断，不装会大量报 Unknown）
+```bash
+pip install basedpyright PyQt6-stubs
+```
+- 检查规则配置在根目录 `pyproject.toml` 的 `[tool.basedpyright]`，VSCode 安装 basedpyright 插件后自动生效；命令行执行：`basedpyright layouts/`
+- 项目当前基于该配置达到 **0 error / 0 warning**，提交代码前建议保持该标准
+
 ## 仓库目录结构
 ```
 PyQt6-Layout-Templates/
